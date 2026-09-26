@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ampersand-invites
+    runtime: node
+    plan: starter
+    region: singapore
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: ampersand-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/ampersand.sqlite
+      - key: ENABLE_DEMO
+        value: 'true'
