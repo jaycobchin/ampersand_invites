@@ -23,6 +23,9 @@ export default defineConfig({
       DATABASE_PATH: ':memory:',
       NODE_ENV: 'test',
       APP_URL: 'http://127.0.0.1:3100',
+      VERCEL: '',
+      TURSO_DATABASE_URL: '',
+      TURSO_AUTH_TOKEN: '',
     },
   },
 });

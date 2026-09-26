@@ -1,7 +1,10 @@
-import { run } from './db.mjs';
+import { batch } from './db.mjs';
 import { id, token, createWedding, dateOffset } from './domain.mjs';
-
-export function seedDemo() {
+export async function seedDemo() {
+  const statements = [];
+  const run = (sql, ...args) => {
+    statements.push({ sql, args });
+  };
   const group = token();
   const user = {
     id: id(),
@@ -10,7 +13,7 @@ export function seedDemo() {
     role: 'couple',
     demo_group: group,
   };
-  run(
+  await run(
     'INSERT INTO users (id, name, email, password_hash, role, demo_group) VALUES (?, ?, ?, ?, ?, ?)',
     user.id,
     user.name,
@@ -76,7 +79,11 @@ export function seedDemo() {
   for (const [firstName, lastName, tag, response] of names) {
     let household = wedding.groups.find((g) => g.name === `${lastName} household`);
     if (!household) {
-      household = { id: id(), name: `${lastName} household`, token: token() };
+      household = {
+        id: id(),
+        name: `${lastName} household`,
+        token: token(),
+      };
       wedding.groups.push(household);
     }
     wedding.guests.push({
@@ -146,49 +153,51 @@ export function seedDemo() {
       '/images/flowers.jpg',
     ],
   ];
-  const vendors = fixtures.map(([name, category, price, description, image]) => {
-    const vendorUserId = id();
-    run(
-      'INSERT INTO users (id, name, email, password_hash, role, demo_group) VALUES (?, ?, ?, ?, ?, ?)',
-      vendorUserId,
-      name,
-      `${id()}@demo.invalid`,
-      '',
-      'vendor',
-      group,
-    );
-    const vendor = {
-      id: id(),
-      name,
-      category,
-      city: 'Singapore',
-      price,
-      currency: 'SGD',
-      description,
-      image,
-      portfolio: [image],
-      packages: [
-        {
-          id: id(),
-          name: 'The signature collection',
-          price,
-          description:
-            'Our thoughtfully curated wedding package. Final inclusions confirmed in your personalised quote.',
-          active: true,
-        },
-      ],
-      demo: true,
-    };
-    run(
-      'INSERT INTO vendors (id, owner_id, approved, data) VALUES (?, ?, 1, ?)',
-      vendor.id,
-      vendorUserId,
-      JSON.stringify(vendor),
-    );
-    return vendor;
-  });
+  const vendors = await Promise.all(
+    fixtures.map(async ([name, category, price, description, image]) => {
+      const vendorUserId = id();
+      await run(
+        'INSERT INTO users (id, name, email, password_hash, role, demo_group) VALUES (?, ?, ?, ?, ?, ?)',
+        vendorUserId,
+        name,
+        `${id()}@demo.invalid`,
+        '',
+        'vendor',
+        group,
+      );
+      const vendor = {
+        id: id(),
+        name,
+        category,
+        city: 'Singapore',
+        price,
+        currency: 'SGD',
+        description,
+        image,
+        portfolio: [image],
+        packages: [
+          {
+            id: id(),
+            name: 'The signature collection',
+            price,
+            description:
+              'Our thoughtfully curated wedding package. Final inclusions confirmed in your personalised quote.',
+            active: true,
+          },
+        ],
+        demo: true,
+      };
+      await run(
+        'INSERT INTO vendors (id, owner_id, approved, data) VALUES (?, ?, 1, ?)',
+        vendor.id,
+        vendorUserId,
+        JSON.stringify(vendor),
+      );
+      return vendor;
+    }),
+  );
   wedding.shortlist = vendors.slice(0, 3).map((v) => v.id);
-  run(
+  await run(
     'INSERT INTO weddings (id, owner_id, slug, data) VALUES (?, ?, ?, ?)',
     wedding.id,
     user.id,
@@ -196,14 +205,14 @@ export function seedDemo() {
     JSON.stringify(wedding),
   );
   for (const g of wedding.groups)
-    run(
+    await run(
       'INSERT INTO guest_tokens (token, wedding_id, group_id) VALUES (?, ?, ?)',
       g.token,
       wedding.id,
       g.id,
     );
   const enquiryId = id();
-  run(
+  await run(
     'INSERT INTO enquiries (id, wedding_id, vendor_id, data) VALUES (?, ?, ?, ?)',
     enquiryId,
     wedding.id,
@@ -225,9 +234,21 @@ export function seedDemo() {
     description:
       'Bridal bouquet, ceremony flowers, and six table arrangements. Delivery and setup included.',
     items: [
-      { name: 'Personal flowers', quantity: 1, price: 450 },
-      { name: 'Ceremony installation', quantity: 1, price: 950 },
-      { name: 'Table arrangements', quantity: 6, price: 150 },
+      {
+        name: 'Personal flowers',
+        quantity: 1,
+        price: 450,
+      },
+      {
+        name: 'Ceremony installation',
+        quantity: 1,
+        price: 950,
+      },
+      {
+        name: 'Table arrangements',
+        quantity: 6,
+        price: 150,
+      },
     ],
     total: 2300,
     currency: 'SGD',
@@ -235,11 +256,12 @@ export function seedDemo() {
     status: 'sent',
     createdAt: new Date().toISOString(),
   };
-  run(
+  await run(
     'INSERT INTO quotes (id, enquiry_id, data) VALUES (?, ?, ?)',
     quote.id,
     enquiryId,
     JSON.stringify(quote),
   );
+  await batch(statements);
   return user;
 }

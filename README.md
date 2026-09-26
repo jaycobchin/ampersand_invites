@@ -1,8 +1,8 @@
 # Ampersand Invites — MVP
 
-A working React + TypeScript wedding planning app, backed by a Node/Express API and persistent SQLite storage. Includes couple, guest, and vendor experiences, plus an isolated sample workspace for product reviews.
+A working React + TypeScript wedding planning app, backed by a Node/Express API and persistent SQLite storage locally or hosted Turso storage on Vercel. Includes couple, guest, and vendor experiences, plus an isolated sample workspace for product reviews.
 
-[Deploy to Render](https://render.com/deploy?repo=https://github.com/jaycobchin/ampersand_invites) · [Hosting guide](./DEPLOYMENT.md)
+[Connect to Vercel](./DEPLOYMENT.md#connect-to-vercel) · [Render alternative](./DEPLOYMENT.md#alternative-render-with-a-persistent-disk) · [Hosting guide](./DEPLOYMENT.md)
 
 ## Run locally
 
@@ -47,7 +47,7 @@ npm run build
 npm start
 ```
 
-Production serves the built frontend and API from one process. A public deployment requires HTTPS and `APP_URL` (or Render’s automatically supplied `RENDER_EXTERNAL_URL`) so secure cookies and origin checks work correctly.
+`npm start` serves the built frontend and API from one process locally or on Render. On Vercel, `vercel.json` serves the frontend from the CDN and runs `api/index.mjs` as a function. Connect a Turso database before using accounts or RSVPs there. Vercel/Render deployment origins are detected automatically; set `APP_URL` when adding a custom domain.
 
 ## Project structure
 
@@ -58,9 +58,11 @@ Production serves the built frontend and API from one process. A public deployme
 | `public/`     | Local photos, fonts, favicon, and guest import template                 |
 | `tests/`      | API, access-control, persistence, and browser workflow tests            |
 | `scripts/`    | Vendor moderation and consistent database backup commands               |
+| `api/`        | Vercel serverless API entry point                                       |
+| `vercel.json` | Vercel build, routing, function region, and headers                     |
 | `render.yaml` | Deployable Render service with persistent storage                       |
 
-Top-level accounts, sessions, memberships, invitation tokens, vendors, enquiries, and quotes use relational tables. Each wedding keeps its small pilot-sized guest/event/task/budget records in a JSON document, updated in SQLite transactions. Public serializers omit private wedding and guest fields. This is a single-instance MVP; move wedding collections into relational PostgreSQL tables when usage warrants it.
+Top-level accounts, sessions, memberships, invitation tokens, vendors, enquiries, and quotes use relational tables. Each wedding keeps its small pilot-sized guest/event/task/budget records in a JSON document, updated in SQLite transactions. Public serializers omit private wedding and guest fields. Local/Render SQLite uses one service instance. Vercel uses Turso, with ownership checks, reads, and mutations in a write transaction to preserve concurrent edits. Related writes and sample creation are batched to keep cloud transactions short. Move large wedding collections into separate relational tables when usage warrants it.
 
 ## Original product specification
 

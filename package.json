@@ -16,6 +16,7 @@
     "db:backup": "node --env-file-if-exists=.env scripts/backup.mjs"
   },
   "dependencies": {
+    "@libsql/client": "^0.18.0",
     "csv-parse": "^7.0.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.0",

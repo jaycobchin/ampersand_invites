@@ -8,3 +8,5 @@ data/
 playwright-report/
 test-results/
 .DS_Store
+.vercel/
+.vercel-cli/

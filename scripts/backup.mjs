@@ -1,7 +1,12 @@
-import { backup } from 'node:sqlite';
+import { backup, DatabaseSync } from 'node:sqlite';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { db } from '../server/db.mjs';
+const databasePath = process.env.DATABASE_PATH || './data/ampersand.sqlite';
+if (process.env.TURSO_DATABASE_URL) {
+  console.error('Use Turso backups or a Turso database export for the hosted database.');
+  process.exit(1);
+}
+const db = new DatabaseSync(databasePath);
 
 const destination = process.argv[2];
 if (!destination) {

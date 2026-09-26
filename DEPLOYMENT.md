@@ -1,8 +1,50 @@
 # Share Ampersand Invites overseas
 
-Use **Render** for this implementation. It serves the frontend and API together over HTTPS and keeps the SQLite database on a persistent disk. The Singapore region is configured; the public URL can be opened from overseas wherever Render is reachable.
+The app supports **Vercel + Turso** as well as Render with a persistent disk. Vercel hosts the React frontend and Express API; Turso stores accounts, weddings, and RSVPs. The Vercel function is configured in Tokyo (`hnd1`) to run near the hosted database.
 
-## Deploy from GitHub
+## Connect to Vercel
+
+1. Sign in to [Vercel](https://vercel.com/new), choose **Add New → Project**, and import `jaycobchin/ampersand_invites` from GitHub. Grant Vercel access to that repository if prompted. Use the existing repository, not a new copy.
+2. Keep the repository root as the root directory. `vercel.json` selects **Vite**, `npm run build`, output directory `dist`, and the API routes. The Node version is **24.x**. `npm start` is for local/Render hosting and is not the Vercel build command.
+3. In your new Vercel project, open **Storage → Create Database**, select **Turso**, review the available plans, create a database in Tokyo (`hnd1`), and connect it to this project. The [Turso marketplace integration](https://vercel.com/marketplace/tursocloud/database) supplies `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Keep both server-only; do not prefix them with `VITE_` or commit them to Git.
+4. Ensure both database variables apply to **Production**, then **redeploy**. The app creates its schema automatically when it first connects. Do not set `DATABASE_PATH` on Vercel or copy the local database into a deployment.
+5. Open the deployment URL and check `/api/health` returns `{"status":"ok"}`. Then use **Take a little look around** or register a new account. If the database has not been connected, the API returns a setup error instead of silently using temporary storage.
+6. Share the project's production `https://…vercel.app` URL. Test it in a signed-out/incognito browser first; if your project's deployment protection requires a Vercel login, adjust that project's access setting before sharing with your reviewer.
+
+The first deployment may display the landing page before the database is connected; accounts and the sample workspace become available after step 4. Vercel project creation, provider setup, and an actual deployment require an authenticated Vercel account. Repository configuration alone does not create a live project.
+
+### Connect through the CLI
+
+The same setup can be done from this directory after signing in. Link to an existing project if you already imported the repository:
+
+```sh
+npx vercel login
+npx vercel link
+npx vercel git connect https://github.com/jaycobchin/ampersand_invites.git
+npx vercel integration add tursocloud/database
+npx vercel --prod
+```
+
+The integration command asks for the resource details and billing plan. Review that choice before creating the resource. See Vercel's [integration CLI documentation](https://vercel.com/docs/cli/integration).
+
+### Vercel environment settings
+
+| Setting              | Purpose                                                    |
+| -------------------- | ---------------------------------------------------------- |
+| `TURSO_DATABASE_URL` | Hosted database URL, supplied by the Turso integration     |
+| `TURSO_AUTH_TOKEN`   | Database authentication token, supplied by the integration |
+| `ENABLE_DEMO`        | Optional; defaults to `true` for a review deployment       |
+| `APP_URL`            | Optional custom domain, e.g. `https://invites.example.com` |
+
+Vercel's exact deployment, branch, and production URLs are accepted automatically for same-origin requests. Custom domains use `APP_URL`; arbitrary `*.vercel.app` origins are not trusted. Use a separate Turso database for Preview environments if you enable preview deployments, so testing does not write to production data.
+
+Your existing local database remains at `data/ampersand.sqlite`; it is **not uploaded automatically**. Vercel starts with its own hosted database. Local development still works without Turso credentials. To move real local data later, take a consistent backup and import it through Turso's database tools before opening the hosted app to users.
+
+## Alternative: Render with a persistent disk
+
+Render runs the frontend and API as one Node service. This option uses your service's persistent SQLite file instead of Turso.
+
+### Deploy Render from GitHub
 
 [Deploy this repository to Render](https://render.com/deploy?repo=https://github.com/jaycobchin/ampersand_invites)
 
@@ -15,7 +57,7 @@ Use **Render** for this implementation. It serves the frontend and API together 
 
 Each reviewer gets separate sample data. To review **the same real wedding**, create an account, set up a wedding, then use **Settings → Create invitation link** for a collaborator. Share that link yourself; the recipient must register or sign in with the email you invited. For guests, publish the wedding website and copy the household invitation link from **Guest list**.
 
-## Runtime settings
+### Render runtime settings
 
 | Setting       | Value / purpose                                                                                                                                      |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,17 +70,17 @@ Each reviewer gets separate sample data. To review **the same real wedding**, cr
 | Demo          | `ENABLE_DEMO=true` for a review deployment; `false` hides and disables creation of sample workspaces                                                 |
 | Public origin | Render’s `RENDER_EXTERNAL_URL` is used automatically. Set `APP_URL=https://your-domain.example` without a trailing slash if you add a custom domain. |
 
-Keep **one service instance**. This MVP uses a local SQLite database and is intended for a small pilot. Use PostgreSQL and a migration plan before scaling to multiple instances.
+Keep **one Render service instance** when using its local SQLite database. The Turso-backed Vercel option uses database transactions to coordinate writes across function instances.
 
 ## Why this isn’t a free static-site deployment
 
-The app has accounts, private guest data, and shared RSVP updates. It needs a running API and durable storage. Render’s free web service cannot attach the persistent disk this app needs, and an ephemeral filesystem would lose the database across restarts. GitHub Pages cannot run this API. Vercel would require adapting the storage to a hosted database rather than using this SQLite setup.
+The app has accounts, private guest data, and shared RSVP updates. It needs a running API and durable storage. Render’s free web service cannot attach the persistent disk this app needs, and an ephemeral filesystem would lose the database across restarts. GitHub Pages cannot run this API. Vercel uses the hosted Turso database described above.
 
 Render documents [Node deployments](https://render.com/docs/deploy-node-express-app), [persistent disks and their limitations](https://render.com/docs/disks), [Blueprints](https://render.com/docs/blueprint-spec), and [current pricing](https://render.com/pricing). A disk-backed service has a brief interruption during deployments; keep the review deployment separate from a later production deployment.
 
 ## Approve real vendors
 
-New vendor accounts can create their profiles, packages, and portfolios. Listings become visible after review. In the Render service shell, run:
+New vendor accounts can create their profiles, packages, and portfolios. Listings become visible after review. For Render, use the service shell. For Vercel, run locally with the hosted database variables set in your private `.env` file:
 
 ```sh
 npm run vendor:approve -- vendor@example.com
@@ -47,6 +89,8 @@ npm run vendor:approve -- vendor@example.com
 Editing a real vendor’s profile returns it to review. Demo vendors are explicitly fictional and appear only inside their own sample workspace.
 
 ## Database backups
+
+For Vercel/Turso, use Turso’s backup/export tools. The command below is only for local or Render SQLite files and refuses to run when a Turso connection is configured.
 
 From the running service shell, create a consistent SQLite backup using the bundled command. Use a new destination filename each time:
 
