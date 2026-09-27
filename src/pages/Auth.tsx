@@ -1,19 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowRight, ArrowUpRight, Check, Heart, Flower2, CalendarHeart } from 'lucide-react';
 import { api, Brand, Field, SaveForm, formValues, useApp, today } from '../lib';
+import { useDeploymentConfig } from '../deployment';
 
 export function Auth({ onDone, joining }: { onDone: () => Promise<void>; joining: boolean }) {
   const [mode, setMode] = useState<'landing' | 'login' | 'register'>(
-    joining ? 'register' : 'landing',
+    joining || window.location.pathname === '/register'
+      ? 'register'
+      : window.location.pathname === '/login'
+        ? 'login'
+        : 'landing',
   );
   const [error, setError] = useState(''),
-    [demo, setDemo] = useState(false),
-    [demoEnabled, setDemoEnabled] = useState(false);
-  useEffect(() => {
-    api('/config')
-      .then((c) => setDemoEnabled(c.demoEnabled))
-      .catch(() => {});
-  }, []);
+    [demo, setDemo] = useState(false);
+  const { config, error: configError } = useDeploymentConfig();
+  const demoSite = config?.mode === 'demo';
   async function startDemo() {
     setDemo(true);
     setError('');
@@ -34,33 +35,50 @@ export function Auth({ onDone, joining }: { onDone: () => Promise<void>; joining
           <a href="#how-it-works" className="landing-nav-link">
             A little about us
           </a>
-          <button
-            className="text-button"
-            onClick={() => {
-              setMode('login');
-              setError('');
-            }}
-          >
-            Sign in
-          </button>
-          <button
-            className="button primary"
-            onClick={() => {
-              setMode('register');
-              setError('');
-            }}
-          >
-            Start your story <ArrowUpRight size={16} />
-          </button>
+          {demoSite ? (
+            config.liveUrl && (
+              <>
+                <a className="text-button" href={`${config.liveUrl}/login`}>
+                  Sign in
+                </a>
+                <a className="button primary" href={`${config.liveUrl}/register`}>
+                  Create your real account <ArrowUpRight size={16} />
+                </a>
+              </>
+            )
+          ) : (
+            <>
+              <button
+                className="text-button"
+                disabled={!config}
+                onClick={() => {
+                  setMode('login');
+                  setError('');
+                }}
+              >
+                Sign in
+              </button>
+              <button
+                className="button primary"
+                disabled={!config}
+                onClick={() => {
+                  setMode('register');
+                  setError('');
+                }}
+              >
+                Start your story <ArrowUpRight size={16} />
+              </button>
+            </>
+          )}
         </nav>
       </header>
       <main className="landing-main">
         <section className="landing-copy">
-          {mode === 'landing' ? (
+          {mode === 'landing' || demoSite || !config ? (
             <>
               <div className="eyebrow">
                 <span className="little-line" />
-                YOUR TOGETHER STARTS HERE
+                {demoSite ? 'EXPLORE A SAMPLE WEDDING' : 'YOUR TOGETHER STARTS HERE'}
               </div>
               <h1>
                 A day to remember.
@@ -71,15 +89,54 @@ export function Auth({ onDone, joining }: { onDone: () => Promise<void>; joining
                 </em>
               </h1>
               <p className="landing-description">
-                The people you love. The details that matter.
-                <br />
-                Bring your wedding together in one beautiful space.
+                {demoSite ? (
+                  <>
+                    Try planning a wedding with fictional guests and vendors.
+                    <br />
+                    Your real wedding starts with its own account on our live site.
+                  </>
+                ) : (
+                  <>
+                    The people you love. The details that matter.
+                    <br />
+                    Bring your wedding together in one beautiful space.
+                  </>
+                )}
               </p>
               <div className="landing-cta">
-                <button className="button primary large" onClick={() => setMode('register')}>
-                  Let’s plan your wedding <ArrowRight size={18} />
-                </button>
-                {demoEnabled && (
+                {demoSite ? (
+                  <>
+                    <button
+                      className="button primary large"
+                      disabled={demo || !config.demoEnabled}
+                      onClick={startDemo}
+                    >
+                      {demo ? 'Opening your sample wedding…' : 'Explore the demo'}{' '}
+                      <ArrowRight size={18} />
+                    </button>
+                    {config.liveUrl && (
+                      <a className="text-button" href={`${config.liveUrl}/register`}>
+                        Create your real account <ArrowUpRight size={17} />
+                      </a>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="button primary large"
+                      disabled={!config}
+                      onClick={() => setMode('register')}
+                    >
+                      Let’s plan your wedding <ArrowRight size={18} />
+                    </button>
+                    {config?.demoUrl && (
+                      <a className="text-button" href={config.demoUrl}>
+                        Try the demo <ArrowUpRight size={17} />
+                      </a>
+                    )}
+                  </>
+                )}
+                {!demoSite && config?.demoEnabled && (
                   <button className="text-button" disabled={demo} onClick={startDemo}>
                     {demo ? 'Opening your sample wedding…' : 'Take a little look around'}
                     <ArrowUpRight size={17} />
@@ -187,9 +244,9 @@ export function Auth({ onDone, joining }: { onDone: () => Promise<void>; joining
               </p>
             </div>
           )}
-          {error && (
+          {(error || configError) && (
             <div className="inline-error" role="alert">
-              {error}
+              {error || configError}
             </div>
           )}
         </section>

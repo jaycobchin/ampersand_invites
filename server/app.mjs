@@ -27,6 +27,7 @@ import {
 import { seedDemo } from './demo.mjs';
 import { atomicRoute } from './atomic-route.mjs';
 import { allowedOrigins } from './origins.mjs';
+import { publicConfig } from './config.mjs';
 const scryptAsync = promisify(scrypt);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const json = (row) => (row ? JSON.parse(row.data) : null);
@@ -98,7 +99,7 @@ app.use(
     limit: '1mb',
   }),
 );
-app.use('/api', async (req, _res, next) => {
+app.use('/api', async (req, res, next) => {
   const session = req.headers.cookie
     ?.split(';')
     .map((x) => x.trim())
@@ -110,6 +111,10 @@ app.use('/api', async (req, _res, next) => {
       hash(session),
       Date.now(),
     );
+  if (req.user?.demo_group && publicConfig().mode === 'live') {
+    req.user = null;
+    res.clearCookie('ampersand_session', { path: '/' });
+  }
   next();
 });
 const auth = (req, _res, next) => {
@@ -297,15 +302,16 @@ app.get('/api/health', async (_req, res) => {
     status: 'ok',
   });
 });
-app.get('/api/config', (_req, res) =>
-  res.json({
-    demoEnabled: process.env.ENABLE_DEMO !== 'false',
-  }),
-);
+app.get('/api/config', (_req, res) => res.json(publicConfig()));
 app.post('/api/auth/:action', async (req, res) => {
   const action = req.params.action;
   if (!['register', 'login', 'logout', 'demo', 'demo-role'].includes(action))
     fail(404, 'Not found.');
+  const config = publicConfig();
+  if (['demo', 'demo-role'].includes(action) && !config.demoEnabled)
+    fail(404, 'The demo is unavailable.');
+  if (action === 'register' && !config.registrationEnabled)
+    fail(403, 'This is the demo. Create your real account on the live site.');
   if (action === 'logout') {
     const value = req.headers.cookie
       ?.split(';')
@@ -333,7 +339,6 @@ app.post('/api/auth/:action', async (req, res) => {
     );
   });
   if (action === 'demo') {
-    if (process.env.ENABLE_DEMO === 'false') fail(404, 'The demo is unavailable.');
     const user = await transaction(seedDemo);
     await sessionFor(res, user);
     return res.json({

@@ -91,6 +91,7 @@ export function Vendors() {
                       <td>
                         <strong>{q.vendor?.name}</strong>
                         <small className="table-subtitle">{q.title}</small>
+                        <p className="quote-inclusions">{q.description}</p>
                       </td>
                       <td>{q.vendor?.category}</td>
                       <td>
@@ -160,8 +161,8 @@ export function Vendors() {
           </div>
           {data.user.demo && (
             <p className="sample-note">
-              These are fictional vendors for exploring the product. Try the vendor workspace to
-              respond to your enquiries.
+              Fictional businesses with illustrative photography. Use “Try the vendor workspace”
+              above to choose a business and respond to its enquiries.
             </p>
           )}
           <div className="vendor-grid marketplace-grid">
@@ -292,7 +293,7 @@ export function Vendors() {
                 setDetail(null);
               }}
             >
-              Say a little hello
+              Enquire about your wedding
               <ArrowRight size={16} />
             </button>
           </div>
@@ -559,6 +560,8 @@ export function VendorWorkspace({ profile }: { profile: boolean }) {
 function QuoteForm({ enquiry, close }: { enquiry: Enquiry; close: () => void }) {
   const { data, mutate } = useApp();
   const [items, setItems] = useState([{ name: '', quantity: 1, price: 0 }]);
+  const [title, setTitle] = useState(''),
+    [description, setDescription] = useState('');
   return (
     <Modal
       title={`Something lovely for ${enquiry.wedding?.partner1} & ${enquiry.wedding?.partner2}.`}
@@ -584,7 +587,11 @@ function QuoteForm({ enquiry, close }: { enquiry: Enquiry; close: () => void }) 
             defaultValue=""
             onChange={(e) => {
               const p = data.vendor?.packages.find((p) => p.id === e.target.value);
-              if (p) setItems([{ name: p.name, quantity: 1, price: p.price }]);
+              if (p) {
+                setItems([{ name: p.name, quantity: 1, price: p.price }]);
+                setTitle(p.name);
+                setDescription(p.description);
+              }
             }}
           >
             <option value="">Create a custom quote</option>
@@ -600,6 +607,8 @@ function QuoteForm({ enquiry, close }: { enquiry: Enquiry; close: () => void }) 
         <Field label="Quote title">
           <input
             name="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             required
             maxLength={200}
             placeholder="Your signature wedding collection"
@@ -608,6 +617,8 @@ function QuoteForm({ enquiry, close }: { enquiry: Enquiry; close: () => void }) 
         <Field label="Inclusions and notes">
           <textarea
             name="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             rows={3}
             maxLength={3000}
             placeholder="Let them know what makes this package special."

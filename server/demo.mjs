@@ -110,51 +110,75 @@ export async function seedDemo() {
   wedding.budget[0].committed = 21000;
   wedding.budget[0].paid = 5000;
   const fixtures = [
-    [
-      'Wildflower Studio',
-      'Florals',
-      1800,
-      'Thoughtful flowers for your once-in-a-lifetime day. Seasonal blooms, natural textures, and a little beautiful wildness.',
-      '/images/flowers.jpg',
-    ],
-    [
-      'The Glasshouse',
-      'Venue',
-      18000,
-      'A light-filled garden setting for celebrations that feel like you. Intimate ceremonies and unforgettable evenings.',
-      '/images/wedding.jpg',
-    ],
-    [
-      'Sunday Stories',
-      'Photography',
-      2800,
-      'Honest moments, beautifully kept. A quiet, documentary approach to the people and feelings that make your day.',
-      '/images/couple.jpg',
-    ],
-    [
-      'Ever After Films',
-      'Videography',
-      3200,
-      'Films that bring you right back to the feeling. Personal wedding stories, crafted with care.',
-      '/images/wedding.jpg',
-    ],
-    [
-      'Atelier June',
-      'Attire',
-      2200,
-      'Modern silhouettes and considered details. Made for your moment, and made to feel like you.',
-      '/images/couple.jpg',
-    ],
-    [
-      'Meadow & Muse',
-      'Florals',
-      1500,
-      'Romantic garden flowers, beautifully arranged for the moments that matter.',
-      '/images/flowers.jpg',
-    ],
+    {
+      name: 'Wildflower Studio',
+      category: 'Florals',
+      price: 1800,
+      description:
+        'Seasonal whites, soft greens, and naturally arranged flowers. From your first bouquet to the last dance, we bring a garden feeling to your celebration.',
+      image: '/images/floral-whites.jpg',
+      packageName: 'The garden essentials',
+      inclusions:
+        'Bridal bouquet, two boutonnieres, ceremony focal arrangement, and four table arrangements. Includes a styling consultation, delivery, and setup.',
+    },
+    {
+      name: 'The Glasshouse',
+      category: 'Venue',
+      price: 18000,
+      description:
+        'A light-filled garden setting for up to 120 guests, with a sheltered ceremony space and an intimate dining room for an evening together.',
+      image: '/images/couple.jpg',
+      packageName: 'An evening in the garden',
+      inclusions:
+        'Exclusive venue use for six hours, tables and chairs for up to 120 guests, a bridal room, sound system, and an on-site coordinator. Catering quoted separately.',
+    },
+    {
+      name: 'Sunday Stories',
+      category: 'Photography',
+      price: 2800,
+      description:
+        'Honest moments, beautifully kept. We photograph the quiet anticipation, the happy tears, and the people who make your wedding yours.',
+      image: '/images/wedding.jpg',
+      packageName: 'The wedding day story',
+      inclusions:
+        'Eight hours with one photographer, at least 400 edited photographs, a private online gallery, and preview images within one week. Full gallery in six weeks.',
+    },
+    {
+      name: 'Ever After Films',
+      category: 'Videography',
+      price: 3200,
+      description:
+        'Wedding films built around your voices and your story. A discreet team capturing the vows, speeches, and in-between moments you will want to revisit.',
+      image: '/images/wedding-film.jpg',
+      packageName: 'Your day in motion',
+      inclusions:
+        'Eight hours with two videographers, a four-to-six-minute highlight film, full ceremony and speech edits, and licensed music. Delivery within eight weeks.',
+    },
+    {
+      name: 'Atelier June',
+      category: 'Attire',
+      price: 2200,
+      description:
+        'Modern silhouettes, delicate textures, and a fit that feels like you. A personal bridal appointment from the first fitting to the finishing touches.',
+      image: '/images/bridal.jpg',
+      packageName: 'The bridal edit',
+      inclusions:
+        'One bridal gown rental for three days, two fittings, standard alterations, a veil, and professional cleaning. Custom designs quoted separately.',
+    },
+    {
+      name: 'Meadow & Muse',
+      category: 'Florals',
+      price: 1500,
+      description:
+        'Soft peach, blush, and a little unexpected colour. Personal flowers and candlelit tables designed for relaxed, romantic celebrations.',
+      image: '/images/floral-blush.jpg',
+      packageName: 'A little meadow',
+      inclusions:
+        'Bridal bouquet, two boutonnieres, and four low table arrangements in a seasonal blush palette. Includes delivery; ceremony flowers and setup quoted separately.',
+    },
   ];
   const vendors = await Promise.all(
-    fixtures.map(async ([name, category, price, description, image]) => {
+    fixtures.map(async ({ name, category, price, description, image, packageName, inclusions }) => {
       const vendorUserId = id();
       await run(
         'INSERT INTO users (id, name, email, password_hash, role, demo_group) VALUES (?, ?, ?, ?, ?, ?)',
@@ -178,10 +202,9 @@ export async function seedDemo() {
         packages: [
           {
             id: id(),
-            name: 'The signature collection',
+            name: packageName,
             price,
-            description:
-              'Our thoughtfully curated wedding package. Final inclusions confirmed in your personalised quote.',
+            description: inclusions,
             active: true,
           },
         ],
@@ -211,57 +234,67 @@ export async function seedDemo() {
       wedding.id,
       g.id,
     );
-  const enquiryId = id();
-  await run(
-    'INSERT INTO enquiries (id, wedding_id, vendor_id, data) VALUES (?, ?, ?, ?)',
-    enquiryId,
-    wedding.id,
-    vendors[0].id,
-    JSON.stringify({
-      id: enquiryId,
-      vendorId: vendors[0].id,
-      weddingId: wedding.id,
-      message:
-        'We’d love a relaxed garden feel with seasonal whites and soft greens. Could you share a quote for our ceremony and dinner?',
-      status: 'quoted',
+  const proposals = [
+    {
+      vendor: vendors[0],
+      title: 'Your garden wedding collection',
+      description:
+        'White-and-green bridal bouquet, two boutonnieres, ceremony installation, and six table arrangements. Delivery and setup included. No candles or teardown service.',
+      items: [
+        { name: 'Bridal bouquet and two boutonnieres', quantity: 1, price: 450 },
+        { name: 'Ceremony installation, delivery and setup', quantity: 1, price: 950 },
+        { name: 'Table arrangements', quantity: 6, price: 150 },
+      ],
+    },
+    {
+      vendor: vendors[5],
+      title: 'The candlelit garden collection',
+      description:
+        'Blush bridal bouquet, two boutonnieres, ceremony meadow, and six table arrangements with candle hire. Delivery, setup, and end-of-evening collection included.',
+      items: [
+        { name: 'Bridal bouquet and two boutonnieres', quantity: 1, price: 400 },
+        { name: 'Ceremony meadow', quantity: 1, price: 850 },
+        { name: 'Table arrangements with candle hire', quantity: 6, price: 175 },
+        { name: 'Delivery, setup and collection', quantity: 1, price: 350 },
+      ],
+    },
+  ];
+  for (const proposal of proposals) {
+    const enquiryId = id();
+    await run(
+      'INSERT INTO enquiries (id, wedding_id, vendor_id, data) VALUES (?, ?, ?, ?)',
+      enquiryId,
+      wedding.id,
+      proposal.vendor.id,
+      JSON.stringify({
+        id: enquiryId,
+        vendorId: proposal.vendor.id,
+        weddingId: wedding.id,
+        message:
+          'We’re planning a relaxed garden wedding for around 120 guests. Could you quote for personal flowers, our ceremony, and six dinner tables, including delivery and setup?',
+        status: 'quoted',
+        createdAt: new Date().toISOString(),
+      }),
+    );
+    const quote = {
+      id: id(),
+      enquiryId,
+      title: proposal.title,
+      description: proposal.description,
+      items: proposal.items,
+      total: proposal.items.reduce((sum, item) => sum + item.quantity * item.price, 0),
+      currency: 'SGD',
+      expires: dateOffset(new Date().toISOString().slice(0, 10), 30),
+      status: 'sent',
       createdAt: new Date().toISOString(),
-    }),
-  );
-  const quote = {
-    id: id(),
-    enquiryId,
-    title: 'Your garden wedding collection',
-    description:
-      'Bridal bouquet, ceremony flowers, and six table arrangements. Delivery and setup included.',
-    items: [
-      {
-        name: 'Personal flowers',
-        quantity: 1,
-        price: 450,
-      },
-      {
-        name: 'Ceremony installation',
-        quantity: 1,
-        price: 950,
-      },
-      {
-        name: 'Table arrangements',
-        quantity: 6,
-        price: 150,
-      },
-    ],
-    total: 2300,
-    currency: 'SGD',
-    expires: dateOffset(new Date().toISOString().slice(0, 10), 30),
-    status: 'sent',
-    createdAt: new Date().toISOString(),
-  };
-  await run(
-    'INSERT INTO quotes (id, enquiry_id, data) VALUES (?, ?, ?)',
-    quote.id,
-    enquiryId,
-    JSON.stringify(quote),
-  );
+    };
+    await run(
+      'INSERT INTO quotes (id, enquiry_id, data) VALUES (?, ?, ?)',
+      quote.id,
+      enquiryId,
+      JSON.stringify(quote),
+    );
+  }
   await batch(statements);
   return user;
 }

@@ -4,6 +4,8 @@ A working React + TypeScript wedding planning app, backed by a Node/Express API 
 
 [Connect to Vercel](./DEPLOYMENT.md#connect-to-vercel) · [Render alternative](./DEPLOYMENT.md#alternative-render-with-a-persistent-disk) · [Hosting guide](./DEPLOYMENT.md)
 
+[Demo and live setup](./DEPLOYMENT.md#demo-and-live-products): the same app can run as a sample-only demo and a live product with separate Vercel projects and Turso databases. `APP_MODE=demo` sends real signups to the live site; `APP_MODE=live` disables sample creation and links visitors to the demo.
+
 ## Run locally
 
 Use **Node 24** and npm.
@@ -14,6 +16,8 @@ npm run dev
 ```
 
 Open **http://localhost:3000**. Select **Take a little look around** to explore a sample wedding, or create your own account. The sample banner lets you move between the couple and vendor workspaces. Sample businesses are fictional and isolated from real accounts.
+
+For a partner presentation, follow the [demo script and product review backlog](./11-demo-review.md). The sample banner lets you choose any demo vendor and restart with a fresh wedding. The sample includes two floral quotes with different inclusions for comparison.
 
 The database is created automatically at `data/ampersand.sqlite`. Data survives browser refreshes and server restarts. No external database credentials are needed. Optional settings are documented in `.env.example`; copy it to `.env` to customise them. The database, `.env`, dependencies, and test artefacts are excluded from Git.
 

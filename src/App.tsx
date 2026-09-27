@@ -26,6 +26,7 @@ import { Guests } from './pages/Guests';
 import { Planning, Events, BudgetPage, SettingsPage, Website } from './pages/Planning';
 import { Vendors, VendorWorkspace } from './pages/Vendors';
 import { Invitation } from './pages/Invitation';
+import { DemoBar } from './DemoBar';
 
 const navigation = [
   ['/dashboard', 'Overview', LayoutDashboard],
@@ -256,30 +257,8 @@ export default function App() {
                 </a>
               )}
             </header>
-            {data.user.demo && (
-              <div className="demo-bar">
-                <span>
-                  <span className="status-dot" />
-                  You’re exploring a sample wedding. Make yourself at home.
-                </span>
-                <button
-                  onClick={async () => {
-                    if (
-                      await mutate('/auth/demo-role', 'POST', {
-                        role: data.user.role === 'couple' ? 'vendor' : 'couple',
-                      })
-                    )
-                      navigate('/dashboard');
-                  }}
-                >
-                  {data.user.role === 'couple'
-                    ? 'Try the vendor workspace'
-                    : 'Back to the couple workspace'}
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-            )}
-            <main className="main-content">
+            {data.user.demo && <DemoBar />}
+            <main className="main-content" key={data.wedding?.id || data.vendor?.id}>
               {data.user.role === 'vendor' ? (
                 <VendorWorkspace profile={path === '/profile' || !data.vendor} />
               ) : path === '/guests' ? (

@@ -60,13 +60,18 @@ test('couple demo edits, household RSVP, quote selection, and vendor response wo
 
   await page.getByRole('button', { name: 'Vendors', exact: true }).click();
   await page.getByRole('button', { name: 'Compare quotes' }).click();
-  await page.getByRole('button', { name: 'View quote' }).first().click();
+  await page
+    .getByRole('row')
+    .filter({ hasText: 'Wildflower Studio' })
+    .getByRole('button', { name: 'View quote' })
+    .click();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Choose this vendor' }).click();
   await expect(page.getByRole('status')).toContainText('Your budget is updated.');
   await page.getByRole('button', { name: 'Budget', exact: true }).click();
   await expect(page.getByRole('row').filter({ hasText: 'Florals' })).toContainText('$2,300');
   await page.getByRole('button', { name: 'Try the vendor workspace' }).click();
+  await page.getByRole('button', { name: 'Open Wildflower Studio workspace' }).click();
   await expect(page.getByRole('heading', { name: 'Your conversations.' })).toBeVisible();
   await page.getByRole('button', { name: 'Create quote', exact: true }).click();
   await page.getByLabel('Quote title', { exact: true }).fill('Updated garden collection');
@@ -81,6 +86,79 @@ test('couple demo edits, household RSVP, quote selection, and vendor response wo
     page.getByRole('cell', { name: 'Updated garden collection', exact: false }),
   ).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('a partner can follow an enquiry through a chosen vendor and restart the demo', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Take a little look around' }).click();
+  await expect(page.getByRole('heading', { name: 'Your day. Coming together.' })).toBeVisible();
+  const original = await page.evaluate(async () => (await fetch('/api/workspace')).json());
+
+  await page.getByRole('button', { name: 'Vendors', exact: true }).click();
+  await page.getByRole('button', { name: 'Compare quotes' }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'Wildflower Studio' })).toContainText(
+    '$2,300',
+  );
+  await expect(page.getByRole('row').filter({ hasText: 'Meadow & Muse' })).toContainText('$2,650');
+
+  await page.getByRole('button', { name: 'Discover vendors' }).click();
+  await page.getByRole('button', { name: 'View Sunday Stories', exact: true }).click();
+  await page.getByRole('button', { name: 'Enquire about your wedding' }).click();
+  await page
+    .getByLabel('Tell them what you have in mind')
+    .fill(
+      'We would love eight hours of photography for our garden wedding, including the ceremony and dinner.',
+    );
+  await page.getByRole('button', { name: 'Send enquiry', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(
+    'Your enquiry is in their vendor workspace.',
+  );
+  await page.getByRole('button', { name: 'Try the vendor workspace' }).click();
+  await page.getByRole('button', { name: 'Open Sunday Stories workspace' }).click();
+  await expect(page.getByRole('heading', { name: 'Hello, Sunday Stories.' })).toBeVisible();
+  await expect(page.locator('.lead-card')).toContainText('eight hours of photography');
+  await expect(page.locator('.lead-card')).toContainText('120 guests');
+  await page.getByRole('button', { name: 'Create quote', exact: true }).click();
+  await page.getByLabel('Start with a package').selectOption({ label: 'The wedding day story' });
+  await expect(page.getByLabel('Quote title', { exact: true })).toHaveValue(
+    'The wedding day story',
+  );
+  await expect(page.getByLabel('Inclusions and notes')).toHaveValue(/400 edited photographs/);
+  await page.getByRole('button', { name: 'Send quote', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Your quote is ready');
+  await page.getByRole('button', { name: 'Back to the couple workspace' }).click();
+  await page.getByRole('button', { name: 'Vendors', exact: true }).click();
+  await page.getByRole('button', { name: 'Compare quotes' }).click();
+  const photography = page.getByRole('row').filter({ hasText: 'Sunday Stories' });
+  await expect(photography).toContainText('400 edited photographs');
+  await photography.getByRole('button', { name: 'View quote' }).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Choose this vendor' }).click();
+  await expect(page.getByRole('status')).toContainText('Your budget is updated.');
+  await page.getByRole('button', { name: 'Budget', exact: true }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'Photography' })).toContainText('$2,800');
+
+  await page.getByRole('button', { name: 'Restart demo' }).click();
+  await page.getByRole('button', { name: 'Keep exploring' }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'Photography' })).toContainText('$2,800');
+  await page.getByRole('button', { name: 'Restart demo' }).click();
+  await page.getByRole('button', { name: 'Start a fresh demo' }).click();
+  await expect(page.getByRole('status')).toContainText('A fresh sample wedding is ready.');
+  await expect(page.getByRole('heading', { name: 'Your day. Coming together.' })).toBeVisible();
+  const restarted = await page.evaluate(async () => (await fetch('/api/workspace')).json());
+  expect(restarted.wedding.id).not.toBe(original.wedding.id);
+  expect(restarted.wedding.selections).toHaveLength(0);
+  expect(restarted.quotes).toHaveLength(2);
+
+  await page.getByRole('button', { name: 'Try the vendor workspace' }).click();
+  await page.getByRole('button', { name: 'Open Meadow & Muse workspace' }).click();
+  await expect(page.getByRole('heading', { name: 'Hello, Meadow & Muse.' })).toBeVisible();
+  await expect(page.locator('.lead-quote')).toContainText('The candlelit garden collection');
+  await page.getByRole('button', { name: 'Restart demo' }).click();
+  await page.getByRole('button', { name: 'Start a fresh demo' }).click();
+  await expect(page.getByRole('heading', { name: 'Your day. Coming together.' })).toBeVisible();
 });
 
 test('mobile navigation, task changes, and empty account onboarding are usable', async ({

@@ -2,6 +2,37 @@
 
 The app supports **Vercel + Turso** as well as Render with a persistent disk. Vercel hosts the React frontend and Express API; Turso stores accounts, weddings, and RSVPs. The Vercel function is configured in Tokyo (`hnd1`) to run near the hosted database.
 
+## Demo and live products
+
+Both Vercel projects use `jaycobchin/ampersand_invites`, the repository root, and the `main` production branch. Each has its own database and server environment variables:
+
+| Setting | Demo | Live |
+| --- | --- | --- |
+| Vercel project | `ampersand-invites-demo` | `ampersand-invites` |
+| Public address | `https://ampersand-invites-demo.vercel.app` | `https://ampersand-invites.vercel.app` |
+| Turso database | `ampersand-invites-demo` | `ampersand-invites-db` (existing data preserved) |
+| `APP_MODE` | `demo` | `live` |
+| `ENABLE_DEMO` | `true` | `false` |
+| `APP_URL` | Demo public address | Live public address |
+| `LIVE_APP_URL` | Live public address | Unset |
+| `DEMO_APP_URL` | Unset | Demo public address |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Demo database credentials | Live database credentials |
+
+Demo mode opens fictional sample weddings and sends sign-in and registration links to the live site. The API rejects real account registration on the demo. Live mode supports real accounts and links to the demo; it rejects sample creation and sample role switching even if `ENABLE_DEMO` is accidentally enabled. Old sample sessions are signed out on the live site. Existing sample records in the old database are preserved, not migrated or deleted.
+
+Website links contain only the destination origin, without account details or invitation tokens. Use full `https://` origins with no path, query, or fragment. `/register` and `/login` open the corresponding forms on the live site. Local development can leave `APP_MODE` unset to retain both real accounts and samples in the usual local app.
+
+Each project's database credentials are scoped to **Production**. Preview deployments need their own test database before their APIs can be used; do not connect them to the live database. Non-secret mode and website URL settings can apply to Production and Preview. Redeploy after changing environment variables.
+
+After committing and pushing the workspace to `main`, Vercel automatically rebuilds both connected projects. A deployment from local files does **not** push those files to GitHub. To deploy local changes explicitly, sign in with `npx vercel login`, then target the intended project:
+
+```sh
+npx vercel deploy --project ampersand-invites-demo --prod
+npx vercel deploy --project ampersand-invites --prod
+```
+
+For custom domains, add each address under its project's **Settings → Domains**, follow the DNS instructions, and update `APP_URL` and the other project's link variable. The projects' production URLs should open without a Vercel sign-in; preview and individual deployment URLs can remain protected.
+
 ## Connect to Vercel
 
 1. Sign in to [Vercel](https://vercel.com/new), choose **Add New → Project**, and import `jaycobchin/ampersand_invites` from GitHub. Grant Vercel access to that repository if prompted. Use the existing repository, not a new copy.

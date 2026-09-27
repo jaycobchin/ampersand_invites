@@ -632,24 +632,65 @@ button:hover:not(:disabled) {
   gap: 14px;
   background: #eff2e9;
   border-bottom: 1px solid #e5e9dc;
-  color: #7a846e;
-  font-size: 9px;
-  padding: 9px 39px;
+  color: #53634d;
+  font-size: 12px;
+  padding: 10px 39px;
   line-height: 1.5;
 }
 .demo-bar > span {
   display: flex;
   align-items: center;
 }
-.demo-bar button {
+.demo-bar button,
+.demo-bar a {
   background: transparent;
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 0;
-  font-size: 9px;
+  padding: 7px 0;
+  font-size: 12px;
   color: #536a46;
   white-space: nowrap;
+}
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 22px;
+}
+.demo-vendors {
+  display: grid;
+  gap: 10px;
+}
+.demo-vendors > button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8f9f5;
+  text-align: left;
+}
+.demo-vendors > button > span {
+  flex: 1;
+}
+.demo-vendors strong,
+.demo-vendors small {
+  display: block;
+}
+.demo-vendors small {
+  color: #5f6d5a;
+  margin-top: 5px;
+  font-size: 12px;
+}
+.quote-inclusions {
+  white-space: normal;
+  max-width: 420px;
+  min-width: 220px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #5f6d5a;
 }
 .main-content {
   padding: 34px 39px 27px;
@@ -1490,6 +1531,7 @@ button:hover:not(:disabled) {
   background: #fff;
 }
 .table-scroll {
+  position: relative;
   overflow: auto;
 }
 table {
@@ -3268,7 +3310,7 @@ tfoot td {
     padding: 16px 13px;
   }
   .stat-top {
-    font-size: 9px;
+    font-size: 11px;
   }
   .stat-value.money {
     font-size: 25px;
@@ -3301,7 +3343,7 @@ tfoot td {
     font-size: 19px;
   }
   .website-preview-bottom p {
-    font-size: 8px;
+    font-size: 12px;
   }
   .vendor-grid {
     gap: 14px;
@@ -3447,11 +3489,10 @@ tfoot td {
     align-items: flex-start;
     flex-direction: column;
     gap: 5px;
-    font-size: 8px;
+    font-size: 12px;
   }
   .demo-bar button {
-    font-size: 8px;
-    margin-left: 13px;
+    font-size: 12px;
   }
   .app-footer {
     padding: 15px 23px;
@@ -3886,13 +3927,13 @@ tfoot td {
   }
   .demo-bar {
     padding: 10px 21px;
-    font-size: 9px;
+    font-size: 12px;
     gap: 7px;
     line-height: 1.6;
   }
   .demo-bar button {
-    font-size: 9px;
-    margin-left: 13px;
+    font-size: 11px;
+    min-height: 36px;
   }
   .main-content {
     padding: 25px 20px;
@@ -3909,26 +3950,27 @@ tfoot td {
     font-size: 7px;
   }
   .dashboard-hero {
-    grid-template-columns: 1.18fr 1fr;
-    min-height: 257px;
+    grid-template-columns: 1fr;
+    min-height: 0;
   }
   .hero-copy {
-    padding: 25px 18px;
+    padding: 25px 24px;
   }
   .hero-copy h1 {
-    font-size: 37px;
+    font-size: 40px;
     letter-spacing: -1.2px;
   }
   .hero-copy p {
-    font-size: 8px;
-    max-width: 155px;
+    font-size: 12px;
+    max-width: none;
+    margin-bottom: 20px;
   }
   .couple-title {
-    font-size: 8px;
+    font-size: 12px;
     letter-spacing: 0;
   }
   .hero-details span {
-    font-size: 7.5px;
+    font-size: 11px;
     gap: 5px;
   }
   .hero-details svg {
@@ -3936,7 +3978,7 @@ tfoot td {
     height: 12px;
   }
   .hero-photo {
-    min-height: 257px;
+    min-height: 175px;
   }
   .countdown-badge {
     top: 17px;
@@ -3948,10 +3990,12 @@ tfoot td {
     font-size: 28px;
   }
   .countdown-badge span {
-    font-size: 5px;
+    font-size: 8px;
+    letter-spacing: 1px;
+    white-space: nowrap;
   }
   .hero-photo-caption {
-    font-size: 12px;
+    font-size: 17px;
     right: 12px;
   }
   .section-label {
@@ -3971,7 +4015,7 @@ tfoot td {
     min-height: 133px;
   }
   .stat-top {
-    font-size: 9px;
+    font-size: 11px;
   }
   .stat-top > svg {
     width: 16px;
@@ -3984,7 +4028,7 @@ tfoot td {
     font-size: 28px;
   }
   .stat-bottom {
-    font-size: 8px;
+    font-size: 10px;
   }
   .dashboard-middle {
     gap: 20px;
@@ -4006,13 +4050,13 @@ tfoot td {
     padding: 16px 0;
   }
   .task-name strong {
-    font-size: 11px;
+    font-size: 13px;
   }
   .task-name span {
-    font-size: 8px;
+    font-size: 11px;
   }
   .task-due {
-    font-size: 9px;
+    font-size: 11px;
   }
   .website-preview-card {
     min-height: 231px;
@@ -4355,7 +4399,7 @@ tfoot td {
     padding: 8px 11px;
   }
   .sample-note {
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.8;
   }
   .marketplace-grid {
@@ -4831,16 +4875,16 @@ tfoot td {
 }
 @media (max-width: 370px) {
   .hero-copy h1 {
-    font-size: 31px;
+    font-size: 36px;
   }
   .hero-copy {
     padding: 24px 15px;
   }
   .hero-copy p {
-    font-size: 7.5px;
+    font-size: 12px;
   }
   .hero-details span {
-    font-size: 7px;
+    font-size: 11px;
   }
   .countdown-badge {
     width: 58px;
@@ -4853,13 +4897,13 @@ tfoot td {
     padding: 14px;
   }
   .stat-top {
-    font-size: 8px;
+    font-size: 11px;
   }
   .stat-value.money {
     font-size: 24px;
   }
   .stat-bottom {
-    font-size: 7px;
+    font-size: 10px;
   }
   .section-label > span:last-child {
     font-size: 10px;
