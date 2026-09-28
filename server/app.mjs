@@ -28,6 +28,19 @@ import { seedDemo } from './demo.mjs';
 import { atomicRoute } from './atomic-route.mjs';
 import { allowedOrigins } from './origins.mjs';
 import { publicConfig } from './config.mjs';
+import {
+  accountActions,
+  handleAccountAction,
+  queueAccountEmail,
+  createAccountSession,
+} from './account.mjs';
+import {
+  verificationRequired,
+  requireEmail,
+  queueNotification,
+  tryDeliverEmails,
+  deliverEmails,
+} from './email.mjs';
 const scryptAsync = promisify(scrypt);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const json = (row) => (row ? JSON.parse(row.data) : null);
@@ -107,7 +120,7 @@ app.use('/api', async (req, res, next) => {
     ?.slice(18);
   if (session)
     req.user = await one(
-      'SELECT u.* FROM users u JOIN sessions s ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?',
+      'SELECT u.*, v.verified_at AS email_verified FROM users u JOIN sessions s ON u.id = s.user_id LEFT JOIN verified_emails v ON v.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ?',
       hash(session),
       Date.now(),
     );
@@ -123,6 +136,10 @@ const auth = (req, _res, next) => {
       Object.assign(new Error('Please sign in to continue.'), {
         status: 401,
       }),
+    );
+  if (verificationRequired() && !req.user.demo_group && !req.user.email_verified)
+    return next(
+      Object.assign(new Error('Verify your email before opening your workspace.'), { status: 403 }),
     );
   next();
 };
@@ -172,14 +189,7 @@ async function saveWedding(w) {
   await batch(statements);
 }
 async function sessionFor(res, user) {
-  const value = token();
-  await run('DELETE FROM sessions WHERE expires_at < ?', Date.now());
-  await run(
-    'INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)',
-    hash(value),
-    user.id,
-    Date.now() + 30 * 86400000,
-  );
+  const value = await createAccountSession(user);
   res.cookie('ampersand_session', value, {
     httpOnly: true,
     sameSite: 'lax',
@@ -194,6 +204,8 @@ const safeUser = (user) => ({
   email: user.demo_group ? 'Sample workspace' : user.email,
   role: user.role,
   demo: !!user.demo_group,
+  emailVerified: !!user.email_verified,
+  verificationRequired: verificationRequired() && !user.demo_group,
 });
 async function visibleVendors(user) {
   const rows = user?.demo_group
@@ -303,9 +315,22 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 app.get('/api/config', (_req, res) => res.json(publicConfig()));
+app.get('/api/internal/deliver-email', async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  const provided = req.get('authorization') || '';
+  if (
+    !secret ||
+    !timingSafeEqual(
+      Buffer.from(hash(provided), 'hex'),
+      Buffer.from(hash(`Bearer ${secret}`), 'hex'),
+    )
+  )
+    fail(401, 'Not authorised.');
+  res.json(await deliverEmails());
+});
 app.post('/api/auth/:action', async (req, res) => {
   const action = req.params.action;
-  if (!['register', 'login', 'logout', 'demo', 'demo-role'].includes(action))
+  if (!['register', 'login', 'logout', 'demo', 'demo-role', ...accountActions].includes(action))
     fail(404, 'Not found.');
   const config = publicConfig();
   if (['demo', 'demo-role'].includes(action) && !config.demoEnabled)
@@ -338,6 +363,7 @@ app.post('/api/auth/:action', async (req, res) => {
       Date.now() + 900000,
     );
   });
+  if (await handleAccountAction(req, res)) return;
   if (action === 'demo') {
     const user = await transaction(seedDemo);
     await sessionFor(res, user);
@@ -369,6 +395,7 @@ app.post('/api/auth/:action', async (req, res) => {
   }
   const input = authSchema.parse(req.body);
   if (action === 'register') {
+    if (verificationRequired()) requireEmail();
     if (!input.name || !input.role) fail(400, 'Your name and account type are required.');
     if (await one('SELECT id FROM users WHERE email = ?', input.email))
       fail(409, 'An account with this email already exists. Please sign in.');
@@ -377,26 +404,34 @@ app.post('/api/auth/:action', async (req, res) => {
     const user = {
       id: id(),
       ...input,
+      password_hash: passwordHash,
     };
     try {
-      await run(
-        'INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, ?)',
-        user.id,
-        input.email,
-        input.name,
-        passwordHash,
-        input.role,
-      );
+      await transaction(async () => {
+        await run(
+          'INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+          user.id,
+          input.email,
+          input.name,
+          passwordHash,
+          input.role,
+        );
+        if (verificationRequired()) req.emailIds = [await queueAccountEmail(user, 'verify')];
+      });
     } catch (error) {
       if (String(error).includes('UNIQUE')) fail(409, 'An account with this email already exists.');
       throw error;
     }
     await sessionFor(res, user);
+    await tryDeliverEmails(req.emailIds);
     return res.status(201).json({
       user: safeUser(user),
     });
   }
-  const user = await one('SELECT * FROM users WHERE email = ? AND demo_group IS NULL', input.email);
+  const user = await one(
+    'SELECT u.*, v.verified_at AS email_verified FROM users u LEFT JOIN verified_emails v ON v.user_id = u.id WHERE u.email = ? AND u.demo_group IS NULL',
+    input.email,
+  );
   const [salt, expected] = (user?.password_hash || `${'0'.repeat(32)}:${'0'.repeat(128)}`).split(
     ':',
   );
@@ -408,9 +443,19 @@ app.post('/api/auth/:action', async (req, res) => {
     user: safeUser(user),
   });
 });
-app.get('/api/workspace', auth, async (req, res) =>
-  res.json(await transaction(() => workspace(req), 'read')),
-);
+app.get('/api/workspace', async (req, res) => {
+  if (!req.user) fail(401, 'Please sign in to continue.');
+  if (verificationRequired() && !req.user.demo_group && !req.user.email_verified)
+    return res.json({
+      user: safeUser(req.user),
+      wedding: null,
+      vendor: null,
+      vendors: [],
+      enquiries: [],
+      quotes: [],
+    });
+  res.json(await transaction(() => workspace(req), 'read'));
+});
 app.post(
   '/api/wedding',
   atomicRoute(auth, couple, async (req, res) => {
@@ -744,6 +789,15 @@ app.post(
       vendor.id,
       JSON.stringify(enquiry),
     );
+    const recipient = await one('SELECT owner_id FROM vendors WHERE id = ?', vendor.id);
+    await queueNotification(
+      req,
+      recipient.owner_id,
+      'enquiry',
+      'A new wedding enquiry on Ampersand',
+      'A couple has sent your business a wedding enquiry. Sign in to review the details and reply with a quote.',
+      '/dashboard',
+    );
     res.status(201).json(enquiry);
   }),
 );
@@ -783,6 +837,15 @@ app.post(
       await run('UPDATE quotes SET data = ? WHERE id = ?', JSON.stringify(quote), quote.id);
       await run('UPDATE enquiries SET data = ? WHERE id = ?', JSON.stringify(enquiry), enquiry.id);
     });
+    const recipient = await one('SELECT owner_id FROM vendors WHERE id = ?', vendor.id);
+    await queueNotification(
+      req,
+      recipient.owner_id,
+      'selection',
+      'Your quote was selected on Ampersand',
+      'A couple has selected your quote. Sign in to review the enquiry and arrange the next steps directly with them.',
+      '/dashboard',
+    );
     res.json({
       ok: true,
     });
@@ -1020,6 +1083,14 @@ app.post(
       if (enquiry.status !== 'selected') enquiry.status = 'quoted';
       await run('UPDATE enquiries SET data = ? WHERE id = ?', JSON.stringify(enquiry), row.id);
     });
+    await queueNotification(
+      req,
+      wedding.ownerId,
+      'quote',
+      'A new quote for your wedding',
+      'A vendor has sent you a quote. Open your wedding workspace to review the price and inclusions.',
+      '/vendors',
+    );
     res.status(201).json(quote);
   }),
 );

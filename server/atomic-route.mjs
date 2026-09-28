@@ -1,4 +1,5 @@
 import { transaction } from './db.mjs';
+import { tryDeliverEmails } from './email.mjs';
 
 // Read ownership and the current wedding inside the same write transaction as
 // the mutation. This prevents two Vercel instances overwriting each other's
@@ -30,6 +31,7 @@ export function atomicRoute(...handlers) {
       }
       if (!sent) throw new Error('A transactional API handler must return JSON.');
     });
+    await tryDeliverEmails(req.emailIds);
     res.status(status).json(body);
   };
 }

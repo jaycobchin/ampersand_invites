@@ -41,6 +41,24 @@ export const schema = `
   CREATE TABLE IF NOT EXISTS auth_limits (
     key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, resets_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS verified_emails (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    verified_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS account_tokens (
+    token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    purpose TEXT NOT NULL CHECK(purpose IN ('verify', 'reset')),
+    expires_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS email_outbox (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL, payload TEXT NOT NULL, created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL, next_attempt_at INTEGER NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0, lease_until INTEGER NOT NULL DEFAULT 0,
+    sent_at INTEGER, last_error TEXT
+  );
+  CREATE INDEX IF NOT EXISTS account_tokens_user ON account_tokens(user_id, purpose);
+  CREATE INDEX IF NOT EXISTS email_outbox_pending ON email_outbox(sent_at, next_attempt_at);
   CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
   CREATE INDEX IF NOT EXISTS members_user ON members(user_id);
   CREATE INDEX IF NOT EXISTS enquiries_vendor ON enquiries(vendor_id);

@@ -27,6 +27,7 @@ import { Planning, Events, BudgetPage, SettingsPage, Website } from './pages/Pla
 import { Vendors, VendorWorkspace } from './pages/Vendors';
 import { Invitation } from './pages/Invitation';
 import { DemoBar } from './DemoBar';
+import { AccountLink, VerifyAccount } from './pages/Account';
 
 const navigation = [
   ['/dashboard', 'Overview', LayoutDashboard],
@@ -104,6 +105,8 @@ export default function App() {
     if (!path.startsWith('/join/')) navigate('/dashboard');
   };
   if (path.startsWith('/invite/') || path.startsWith('/w/')) return <Invitation path={path} />;
+  if (['/forgot-password', '/reset-password', '/verify-email'].includes(path))
+    return <AccountLink path={path} key={path} />;
   if (loading)
     return (
       <div className="loading-screen">
@@ -124,6 +127,17 @@ export default function App() {
       </div>
     );
   if (!data) return <Auth onDone={authDone} joining={path.startsWith('/join/')} />;
+  if (data.user.verificationRequired && !data.user.emailVerified)
+    return (
+      <VerifyAccount
+        user={data.user}
+        onSignOut={async () => {
+          await api('/auth/logout', 'POST', {});
+          setData(null);
+          navigate('/login');
+        }}
+      />
+    );
   return (
     <AppContext.Provider value={{ data, reload, navigate, mutate, notify }}>
       {path.startsWith('/join/') ? (

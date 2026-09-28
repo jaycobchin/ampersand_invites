@@ -6,17 +6,17 @@ The app supports **Vercel + Turso** as well as Render with a persistent disk. Ve
 
 Both Vercel projects use `jaycobchin/ampersand_invites`, the repository root, and the `main` production branch. Each has its own database and server environment variables:
 
-| Setting | Demo | Live |
-| --- | --- | --- |
-| Vercel project | `ampersand-invites-demo` | `ampersand-invites` |
-| Public address | `https://ampersand-invites-demo.vercel.app` | `https://ampersand-invites.vercel.app` |
-| Turso database | `ampersand-invites-demo` | `ampersand-invites-db` (existing data preserved) |
-| `APP_MODE` | `demo` | `live` |
-| `ENABLE_DEMO` | `true` | `false` |
-| `APP_URL` | Demo public address | Live public address |
-| `LIVE_APP_URL` | Live public address | Unset |
-| `DEMO_APP_URL` | Unset | Demo public address |
-| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Demo database credentials | Live database credentials |
+| Setting                                   | Demo                                        | Live                                             |
+| ----------------------------------------- | ------------------------------------------- | ------------------------------------------------ |
+| Vercel project                            | `ampersand-invites-demo`                    | `ampersand-invites`                              |
+| Public address                            | `https://ampersand-invites-demo.vercel.app` | `https://ampersand-invites.vercel.app`           |
+| Turso database                            | `ampersand-invites-demo`                    | `ampersand-invites-db` (existing data preserved) |
+| `APP_MODE`                                | `demo`                                      | `live`                                           |
+| `ENABLE_DEMO`                             | `true`                                      | `false`                                          |
+| `APP_URL`                                 | Demo public address                         | Live public address                              |
+| `LIVE_APP_URL`                            | Live public address                         | Unset                                            |
+| `DEMO_APP_URL`                            | Unset                                       | Demo public address                              |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Demo database credentials                   | Live database credentials                        |
 
 Demo mode opens fictional sample weddings and sends sign-in and registration links to the live site. The API rejects real account registration on the demo. Live mode supports real accounts and links to the demo; it rejects sample creation and sample role switching even if `ENABLE_DEMO` is accidentally enabled. Old sample sessions are signed out on the live site. Existing sample records in the old database are preserved, not migrated or deleted.
 
@@ -39,7 +39,7 @@ For custom domains, add each address under its project's **Settings → Domains*
 2. Keep the repository root as the root directory. `vercel.json` selects **Vite**, `npm run build`, output directory `dist`, and the API routes. The Node version is **24.x**. `npm start` is for local/Render hosting and is not the Vercel build command.
 3. In your new Vercel project, open **Storage → Create Database**, select **Turso**, review the available plans, create a database in Tokyo (`hnd1`), and connect it to this project. The [Turso marketplace integration](https://vercel.com/marketplace/tursocloud/database) supplies `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Keep both server-only; do not prefix them with `VITE_` or commit them to Git.
 4. Ensure both database variables apply to **Production**, then **redeploy**. The app creates its schema automatically when it first connects. Do not set `DATABASE_PATH` on Vercel or copy the local database into a deployment.
-5. Open the deployment URL and check `/api/health` returns `{"status":"ok"}`. Then use **Take a little look around** or register a new account. If the database has not been connected, the API returns a setup error instead of silently using temporary storage.
+5. Open the deployment URL and check `/api/health` returns `{"status":"ok"}`. On the demo, use **Take a little look around**. Before using real accounts in live mode, complete [account email setup](./12-live-launch.md), then verify signup and recovery with an address you control. If the database has not been connected, the API returns a setup error instead of silently using temporary storage.
 6. Share the project's production `https://…vercel.app` URL. Test it in a signed-out/incognito browser first; if your project's deployment protection requires a Vercel login, adjust that project's access setting before sharing with your reviewer.
 
 The first deployment may display the landing page before the database is connected; accounts and the sample workspace become available after step 4. Vercel project creation, provider setup, and an actual deployment require an authenticated Vercel account. Repository configuration alone does not create a live project.
@@ -133,9 +133,9 @@ Copy backups off the service through Render’s supported transfer tools. To res
 
 ## Pilot boundaries
 
-- Invitations and collaborator links are copied and shared manually. Email delivery, verification, password recovery, and reminders are not connected.
+- Invitations and collaborator links are copied and shared manually. Account verification, password recovery, and enquiry/quote/selection notifications are implemented using Resend. Configure the sender, encryption key, and scheduled retries before deploying live mode; see [live launch setup](./12-live-launch.md). Guest invitation emails and reminder campaigns remain manual.
 - Quotes and enquiries appear in the app. Payments and contracts are handled outside the platform.
 - Photos use direct HTTPS image URLs; there is no file upload service.
 - Moderation uses the approval command, not an admin dashboard.
-- The API includes session authentication, validation, ownership checks, CSRF origin checks, and rate limits. Broader launch work includes account recovery, email ownership verification, monitoring, and data-retention policies.
+- The API includes session authentication, email verification in live mode, password recovery, validation, ownership checks, CSRF origin checks, and rate limits. Production operations still need monitoring, a tested backup/restore process, and an agreed data-retention policy.
 - Sample data persists like other data. Demo mode is for fictional content; disabling demo creation does not delete existing sample workspaces.

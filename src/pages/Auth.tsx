@@ -230,6 +230,11 @@ export function Auth({ onDone, joining }: { onDone: () => Promise<void>; joining
                   </Field>
                 )}
               </SaveForm>
+              {mode === 'login' && (
+                <a className="text-button" href="/forgot-password">
+                  Forgot your password?
+                </a>
+              )}
               <p className="auth-switch">
                 {mode === 'login' ? 'A new beginning?' : 'Already part of the story?'}{' '}
                 <button

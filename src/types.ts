@@ -113,6 +113,8 @@ export type User = {
   email: string;
   role: 'couple' | 'vendor';
   demo: boolean;
+  emailVerified: boolean;
+  verificationRequired: boolean;
 };
 export type Workspace = {
   user: User;

@@ -24,6 +24,8 @@ The database is created automatically at `data/ampersand.sqlite`. Data survives 
 ## Implemented workflows
 
 - Email/password registration, login, and persistent sessions for couples and vendors.
+- Live-account email verification, password recovery, and session revocation after recovery.
+- Transactional email for verification, recovery, new enquiries, new quotes, and vendor selection, with an encrypted retry queue and demo isolation.
 - Wedding onboarding, date-relative checklist, dashboard, editable details, and email-scoped collaborator links.
 - Multiple events with public or invitation-only visibility.
 - Guest creation/editing/removal, household links, plus-ones, tags, event assignment, CSV import with column mapping and row validation, CSV export, and RSVP filters.
@@ -34,7 +36,7 @@ The database is created automatically at `data/ampersand.sqlite`. Data survives 
 - Approved vendor discovery, search, category/price filters, portfolios, active packages, shortlisting, and structured enquiries.
 - Vendor profile/package editing, enquiry inbox and lead statuses, multi-item quotes, quote comparison, expiry handling, and vendor selection.
 
-The dashboards refresh on focus and periodically so new guest replies and quotes appear. Invitations are shared by copying links. Email sending, password recovery, file uploads, payments, and an admin interface are not included in this pilot. See [deployment boundaries](./DEPLOYMENT.md#pilot-boundaries).
+The dashboards refresh on focus and periodically so new guest replies and quotes appear. Invitations are shared by copying links. Account and vendor-workflow emails use Resend after sender configuration; live registrations require working email configuration. Guest email campaigns, file uploads, payments, and an admin interface are not included in this pilot. See [live launch setup](./12-live-launch.md) and [deployment boundaries](./DEPLOYMENT.md#pilot-boundaries).
 
 ## Verify and build
 

@@ -4,7 +4,17 @@ import { publicConfig } from '../server/config.mjs';
 
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_PATH = ':memory:';
-for (const name of ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'VERCEL', 'APP_MODE', 'ENABLE_DEMO'])
+for (const name of [
+  'TURSO_DATABASE_URL',
+  'TURSO_AUTH_TOKEN',
+  'VERCEL',
+  'APP_MODE',
+  'ENABLE_DEMO',
+  'RESEND_API_KEY',
+  'EMAIL_FROM',
+  'EMAIL_ENCRYPTION_KEY',
+  'REQUIRE_EMAIL_VERIFICATION',
+])
   delete process.env[name];
 const { app } = await import('../server/app.mjs');
 const { one, closeDatabase } = await import('../server/db.mjs');
@@ -45,7 +55,7 @@ test('demo serves sample weddings but rejects real registration before storing a
   assert.equal((await demo.json()).user.demo, true);
 });
 
-test('live allows real registration and blocks both sample creation and sample role switching', async () => {
+test('live requires account email configuration and blocks sample creation and sample role switching', async () => {
   process.env.APP_MODE = 'demo';
   const sample = await post('/auth/demo');
   const sampleCookie = sample.headers.get('set-cookie').split(';')[0];
@@ -70,12 +80,9 @@ test('live allows real registration and blocks both sample creation and sample r
         password: 'a-long-password',
       })
     ).status,
-    201,
+    503,
   );
-  assert.equal(
-    (await one('SELECT demo_group FROM users WHERE email = ?', 'live@example.com')).demo_group,
-    null,
-  );
+  assert.equal(await one('SELECT id FROM users WHERE email = ?', 'live@example.com'), undefined);
 });
 
 test('public configuration exposes only intended fields and valid website origins', () => {

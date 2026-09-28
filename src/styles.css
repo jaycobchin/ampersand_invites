@@ -4967,3 +4967,39 @@ tfoot td {
     scroll-behavior: auto !important;
   }
 }
+.account-page {
+  min-height: 100vh;
+  padding: 36px 20px;
+  background: #f8f5ef;
+}
+.account-page > .brand {
+  width: fit-content;
+  margin: 0 auto 40px;
+}
+.account-card {
+  width: min(100%, 480px);
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 44px);
+  background: #fffdf9;
+  border: 1px solid #e8e1d6;
+  border-radius: 18px;
+  overflow-wrap: anywhere;
+}
+.account-card h1 {
+  font-size: clamp(32px, 7vw, 44px);
+  line-height: 1.15;
+  margin: 18px 0;
+}
+.account-card p {
+  line-height: 1.6;
+  margin: 16px 0;
+}
+.account-card .form {
+  margin: 24px 0;
+}
+.account-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+}

@@ -26,6 +26,12 @@ export default defineConfig({
       VERCEL: '',
       TURSO_DATABASE_URL: '',
       TURSO_AUTH_TOKEN: '',
+      APP_MODE: '',
+      REQUIRE_EMAIL_VERIFICATION: '',
+      RESEND_API_KEY: '',
+      EMAIL_FROM: '',
+      EMAIL_ENCRYPTION_KEY: '',
+      CRON_SECRET: '',
     },
   },
 });
